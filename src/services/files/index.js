@@ -38,8 +38,18 @@ const dbPath = join(currentWorkingDirectory, "../../db/index.json");
 
 route.get("/", async (req, res, next) => {
   try {
-    const a = 10;
-    a = 40;
+    let filesInDB = await fs.readJSON(dbPath);
+    if (req.query.starred === "true") {
+      const starred = filesInDB.filter((f) => f.isStarred);
+      res.send(starred);
+    } else if (req.query.sort === "recents") {
+      const sortByDate = filesInDB.sort(
+        (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
+      );
+      res.send(sortByDate);
+    } else {
+      res.send(filesInDB);
+    }
   } catch (err) {
     const error = new Error(err.message);
     error.httpStatusCode = 500;
@@ -50,7 +60,7 @@ route.get("/", async (req, res, next) => {
 route.post(
   "/",
   upload.single("file"),
-  checkFileType(["image/jpeg", "image/png"]),
+  checkFileType(["image/jpeg", "image/png", "application/pdf"]),
   async (req, res, next) => {
     try {
       const { originalname, buffer, size } = req.file;
@@ -74,7 +84,9 @@ route.post(
         downloadLink,
         size: kb,
         unit: "kb",
+        isStarred: false,
         createdAt: new Date(),
+        updatedAt: new Date(),
       };
       const filesInDB = await fs.readJSON(dbPath);
       filesInDB.push(createdFile);
@@ -87,6 +99,28 @@ route.post(
     }
   }
 );
+
+route.post("/:name/star", async (req, res, next) => {
+  try {
+    let filesInDB = await fs.readJSON(dbPath);
+    const index = filesInDB.findIndex((f) => f.name === req.params.name);
+    if (index !== -1) {
+      const file = filesInDB[index];
+      file.isStarred = !file.isStarred;
+      filesInDB[index] = file;
+      await fs.writeJSON(dbPath, filesInDB);
+      res.send(file);
+    } else {
+      const error = new Error(`${req.params.name} is not found!`);
+      error.httpStatusCode = 404;
+      next(error);
+    }
+  } catch (err) {
+    const error = new Error(err.message);
+    error.httpStatusCode = 500;
+    next(error);
+  }
+});
 
 route.get("/:name", async (req, res, next) => {
   try {
@@ -124,7 +158,7 @@ route.put("/", checkSchema(schema), async (req, res, next) => {
 
       await fs.remove(finalDestination);
 
-      const oldObj = filesInDB.find((f) => f.name !== req.params.name);
+      const oldObj = filesInDB.find((f) => f.name === req.body.oldName);
 
       filesInDB = filesInDB.filter((f) => f.name !== oldName);
 
