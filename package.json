@@ -1,10 +1,11 @@
 {
   "name": "m5-w1-recap-api",
   "version": "1.0.0",
-  "type":"module",
+  "type": "module",
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "nodemon -r dotenv/confing src/index.js"
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
