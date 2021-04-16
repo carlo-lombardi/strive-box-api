@@ -4,14 +4,26 @@ import filesRoute from "./services/files/index.js";
 
 import cors from "cors";
 
+import { fileURLToPath } from "url";
+
+import { dirname, join } from "path";
+
 import {
   errorHandler,
   routeNotFoundHandler,
 } from "./middlewares/errors/index.js";
 
+const currentWorkingFile = fileURLToPath(import.meta.url);
+
+const currentWorkingDirectory = dirname(currentWorkingFile);
+
+const publicFolderDirectory = join(currentWorkingDirectory, "../public");
+
 const app = express();
 
 app.use(cors());
+
+app.use(express.static(publicFolderDirectory));
 
 app.use(express.json());
 
